@@ -1,0 +1,6 @@
+name: CookieAC
+version: '${project.version}'
+main: fr.clue.cookieac.CookieAC
+api-version: '1.20'
+depend:
+  - packetevents
