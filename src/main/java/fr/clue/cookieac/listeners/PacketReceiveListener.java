@@ -3,6 +3,7 @@ package fr.clue.cookieac.listeners;
 import com.github.retrooper.packetevents.event.*;
 import com.github.retrooper.packetevents.protocol.player.User;
 import fr.clue.cookieac.CookieAC;
+import fr.clue.cookieac.check.Check;
 import fr.clue.cookieac.player.CookiePlayer;
 import fr.clue.cookieac.utils.PacketUtil;
 import org.bukkit.entity.Player;
@@ -27,10 +28,13 @@ public class PacketReceiveListener extends PacketListenerAbstract {
         }
 
         //Register clientbound packets for checks
-        user.getChecks().forEach(check -> {
-            user.toBukkit().sendMessage("Debug 2, loop through checks, and use onPacket");
-            check.onPacket(event);
-        });
+        //user.getChecks().forEach(check -> {
+        //    check.onPacket(event);
+        //});
+        for(Check c : user.getChecks()){
+            ((Player) event.getPlayer()).sendMessage("Debug 2, loop through checks, and use onPacket");
+            c.onPacket(event);
+        }
 
         //run client processors
         user.getProcessorManager().getProcessors().forEach(processor -> processor.onPacket(event));

@@ -19,7 +19,8 @@ public class CookiePlayer {
 
     private final String userName;
 
-    private final List<Check> checks;
+    @Getter
+    private List<Check> checks;
 
     @Getter
     private ProcessorManager processorManager;
@@ -36,7 +37,4 @@ public class CookiePlayer {
         return player;
     }
 
-    public ArrayList<Check> getChecks(){
-        return new ArrayList<>(checks);
-    }
 }
