@@ -15,6 +15,7 @@ public class PacketUtil {
         SERVER_POSITION,
         SERVER_KEEPALIVE,
         SERVER_TRANSACTION,
+        PLAYER_POSITION_AND_LOOK,
         SERVER_VELOCITY,
         SERVER_RESPAWN,
         SERVER_OPEN_WINDOW,
@@ -46,8 +47,8 @@ public class PacketUtil {
         CLIENT_BLOCK_PLACE,
         CLIENT_BLOCK_DIG,
         CLIENT_ARM_ANIMATION,
-        CLIENT_USE_ENTITY,
-        CLIENT_ENTITY_ACTION,
+        CLIENT_USE_ENTITY, // right or left click on entity
+        CLIENT_ENTITY_ACTION, // c0c i guess ?
         CLIENT_COMMAND,
         CLIENT_CREATIVE_INVENTORY,
         CLIENT_CLOSE_WINDOW,
@@ -66,8 +67,8 @@ public class PacketUtil {
         SERVER_EFFECT,
         SERVER_EFFECT_REMOVE,
 
-        //Other
-        NOT_DEFINDED
+        DAMAGE_PLAYER, //Other
+        TELEPORT_CLIENT_CONFIRM, NOT_DEFINDED
     }
 
 
@@ -81,6 +82,9 @@ public class PacketUtil {
 
         if (event.getPacketType() == PacketType.Play.Client.PLAYER_FLYING) {
             return Packets.CLIENT_FLYING;
+        }
+        if(event.getPacketType() == PacketType.Play.Client.TELEPORT_CONFIRM){
+            return Packets.TELEPORT_CLIENT_CONFIRM;
         }
 
         if (event.getPacketType() == PacketType.Play.Client.PLAYER_POSITION) {
@@ -140,6 +144,12 @@ public class PacketUtil {
         if (event.getPacketType() == PacketType.Play.Server.ENTITY_RELATIVE_MOVE) {
             return Packets.SERVER_REL_ENTITY_MOVE;
         }
+        if (event.getPacketType() == PacketType.Play.Server.UNLOCK_RECIPES) {
+            return Packets.SERVER_REL_TELEPORT;
+        }
+        if(event.getPacketType() == PacketType.Play.Server.DAMAGE_EVENT){
+            return Packets.DAMAGE_PLAYER;
+        }
 
         if (event.getPacketType() == PacketType.Play.Server.ENTITY_RELATIVE_MOVE_AND_ROTATION) {
             return Packets.SERVER_REL_POSITION_LOOK;
@@ -167,6 +177,9 @@ public class PacketUtil {
 
         if (event.getPacketType() == PacketType.Play.Server.KEEP_ALIVE) {
             return Packets.SERVER_KEEPALIVE;
+        }
+        if(event.getPacketType() == PacketType.Play.Server.PLAYER_POSITION_AND_LOOK){
+            return Packets.PLAYER_POSITION_AND_LOOK;
         }
 
         if (event.getPacketType() == PacketType.Play.Server.WINDOW_CONFIRMATION) {

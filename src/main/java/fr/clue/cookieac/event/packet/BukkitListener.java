@@ -14,7 +14,6 @@ public class BukkitListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onJoin(final PlayerJoinEvent event) {
-        CookieAC.getInstance().getLogger().info("Erm waht the skibidi, someone joined : " + event.getPlayer());
         CookieAC.getPlayerManager().addUser(event.getPlayer());
     }
 

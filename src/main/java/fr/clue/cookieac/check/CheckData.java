@@ -9,6 +9,7 @@ public @interface CheckData {
      boolean enabled() default true;
 
      boolean experimental() default false;
+     boolean setback() default true;
 
      double punishmentVL() default 20.0;
 

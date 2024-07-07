@@ -2,13 +2,17 @@ package fr.clue.cookieac.process.impl;
 
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerFlying;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityEffect;
 import fr.clue.cookieac.player.CookiePlayer;
 import fr.clue.cookieac.process.Processor;
 import fr.clue.cookieac.process.ProcessorInfo;
+import fr.clue.cookieac.utils.CollisionUtils;
 import fr.clue.cookieac.utils.PacketUtil;
 import fr.clue.cookieac.utils.location.FlyingLocation;
 import lombok.Getter;
 import lombok.Setter;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
 
 @Getter
 @Setter
@@ -18,12 +22,15 @@ public class MovementProcessor extends Processor {
     private FlyingLocation to = new FlyingLocation();
     private FlyingLocation from = new FlyingLocation();
     private FlyingLocation fromFrom = new FlyingLocation();
+    private FlyingLocation lastGroundPosition = new FlyingLocation();
+    private Material lastTouchedMaterial = Material.DIRT;
 
     private double deltaX, deltaY, deltaZ, deltaXAbs, deltaZAbs, deltaYAbs, lastDeltaX, lastDeltaY, lastDeltaZ,
             lastDeltaXZ, lastDeltaYaw, lastDeltaPitch, lastDeltaYawAbs, lastDeltaPitchAbs,
             deltaXZ, deltaYaw, deltaPitch, deltaYawAbs, deltaPitchAbs;
 
-    private int tick;
+    private int tick, offGroundTick, onGroundTick, claimOffGroundTick, claimOnGroundTick;
+    private boolean accurateGround, wasAccurateGround, landedFromSlime = true;
 
     public MovementProcessor(CookiePlayer user) {
         super(user);
@@ -47,6 +54,34 @@ public class MovementProcessor extends Processor {
                 float yaw = flyingPacket.getLocation().getYaw();
 
                 boolean ground = flyingPacket.isOnGround();
+                boolean mathGround = CollisionUtils.hasNoSolidBlocksAroundPlayer((Player) event.getPlayer()) && this.getTo().getPosY() % (1 / 64.0d) == 0;
+                this.wasAccurateGround = this.accurateGround;
+                this.accurateGround = CollisionUtils.accurateGround((Player) event.getPlayer()) ||
+                        CollisionUtils.isStandingOnLilypad((Player) event.getPlayer())
+                || CollisionUtils.standingOnFence((Player) event.getPlayer());
+
+                if(CollisionUtils.groundMaterial((Player) event.getPlayer()).isSolid()){
+                    lastTouchedMaterial = CollisionUtils.groundMaterial((Player) event.getPlayer());
+                    landedFromSlime = false;
+                }else{
+                    if(this.accurateGround){
+                        landedFromSlime = true;
+                    }
+                }
+                if(accurateGround){
+                    lastGroundPosition.setTick(from.getTick());
+                    lastGroundPosition.setWorld(from.getWorld());
+                    lastGroundPosition.setPitch(from.getPitch());
+                    lastGroundPosition.setYaw(from.getYaw());
+                    lastGroundPosition.setPosX(from.getPosX());
+                    lastGroundPosition.setPosY(from.getPosY());
+                    lastGroundPosition.setPosZ(from.getPosZ());
+                    lastGroundPosition.setOnGround(from.isOnGround());
+                }
+                this.offGroundTick = this.accurateGround ? 0 : offGroundTick + 1;
+                this.onGroundTick = this.accurateGround ? onGroundTick + 1 : 0;
+                this.claimOffGroundTick = ground ? 0 : claimOffGroundTick + 1;
+                this.claimOnGroundTick = ground ? claimOnGroundTick + 1 : 0;
 
                 this.fromFrom.setWorld(this.from.getWorld());
                 this.from.setWorld(to.getWorld());
