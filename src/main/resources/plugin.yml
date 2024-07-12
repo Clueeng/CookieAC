@@ -4,3 +4,8 @@ main: fr.clue.cookieac.CookieAC
 api-version: '1.20'
 depend:
   - packetevents
+
+commands:
+  alerts:
+    permission: 'cookie.alerts'
+    description: 'Sets the alerts display'

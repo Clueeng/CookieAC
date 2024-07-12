@@ -1,4 +1,5 @@
 package fr.clue.cookieac.check;
+import fr.clue.cookieac.check.impl.exploit.InvalidPitch;
 import fr.clue.cookieac.check.impl.gravity.GravityA;
 import fr.clue.cookieac.check.impl.gravity.GravityB;
 import fr.clue.cookieac.check.impl.ground.GroundA;
@@ -16,11 +17,18 @@ public class CheckManager {
         this.checks.add(new GroundB());
         this.checks.add(new GravityA());
         this.checks.add(new GravityB());
+        this.checks.add(new InvalidPitch());
     }
 
     public void loadToPlayer(CookiePlayer user) {
         wrapUser(user);
+        this.checks.forEach(c -> c.violations = 0.0f);
         user.getChecks().addAll(this.checks);
+    }
+
+    public void unloadToPlayer(CookiePlayer user){
+        wrapUser(user);
+        user.getChecks().removeAll(this.checks);
     }
 
     public void wrapUser(CookiePlayer user) {

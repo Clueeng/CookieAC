@@ -32,6 +32,8 @@ public class CookiePlayer {
     private PotionData potionData;
     @Getter @Setter
     public Location tpLocation;
+    @Getter @Setter
+    public long timeJoin;
 
     public CookiePlayer(Player player) {
         this.player = player;
@@ -40,6 +42,7 @@ public class CookiePlayer {
         this.checks = new ArrayList<>();
         this.processorManager = new ProcessorManager(this);
         this.potionData = new PotionData();
+        this.timeJoin = System.currentTimeMillis();
     }
 
     public Player toBukkit(){

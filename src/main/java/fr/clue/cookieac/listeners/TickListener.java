@@ -20,6 +20,9 @@ public class TickListener extends BukkitRunnable {
             for(Check c : cp.getChecks()){
                 c.updateExemptionTicks();
             }
+            if(cp.toBukkit().isDead() && System.currentTimeMillis() % 50 == 0){ // tick check lol idfk
+                cp.timeJoin = System.currentTimeMillis();
+            }
         }
     }
 

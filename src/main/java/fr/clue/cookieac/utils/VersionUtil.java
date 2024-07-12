@@ -1,8 +1,30 @@
 package fr.clue.cookieac.utils;
 
+import com.viaversion.viaversion.api.Via;
+import org.bukkit.entity.Player;
+
 import java.util.HashMap;
 
 public class VersionUtil {
+
+    public static boolean playerAboveVersion(String checkingVersion, Player player){
+        int viaVer = getViaVer(player);
+        int cheVer = versionMapping().get(checkingVersion);
+        return viaVer >= cheVer;
+    }
+
+    public static int getViaVer(Player player){
+        return Via.getAPI().getPlayerVersion(player);
+    }
+    public static String formattedVersion(int ver){
+        for(String s : versionMapping().keySet()){
+            if(versionMapping().get(s).equals(ver)){
+                return s;
+            }
+        }
+        return "Unknown";
+    }
+
     public static HashMap<String, Integer> versionMapping(){
         HashMap<String, Integer> h = new HashMap<>();
         h.put("1.21", 767);

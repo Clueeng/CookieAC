@@ -1,6 +1,6 @@
 <component name="ArtifactManager">
   <artifact type="jar" build-on-make="true" name="CookieAC:jar">
-    <output-path>$PROJECT_DIR$/../../Server/plugins</output-path>
+    <output-path>$PROJECT_DIR$/../../1.20 server/plugins</output-path>
     <root id="archive" name="CookieAC.jar">
       <element id="module-output" name="CookieAC" />
       <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/jetbrains/kotlin/kotlin-stdlib-jdk8/2.0.0/kotlin-stdlib-jdk8-2.0.0.jar" path-in-jar="/" />

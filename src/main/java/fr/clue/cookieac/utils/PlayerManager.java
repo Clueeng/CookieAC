@@ -37,7 +37,10 @@ public class PlayerManager {
     }
 
     public void removePlayer(Player player) {
+        CookiePlayer user = CookieAC.getPlayerManager().getPlayer(player.getUniqueId());
+        CookieAC.getCheckManager().unloadToPlayer(user);
         this.userMap.remove(player.getUniqueId());
+        System.out.println("Removed " + player.getName() + " to the list " + CookieAC.getPlayerManager().getUsers());
     }
 
     public CookiePlayer getPlayer(UUID uuid) {

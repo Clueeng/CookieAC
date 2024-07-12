@@ -1,47 +1,56 @@
 package fr.clue.cookieac.utils;
 
-import com.viaversion.viaversion.api.Via;
 import fr.clue.cookieac.CookieAC;
-import net.kyori.adventure.text.Component;
+import fr.clue.cookieac.player.CookiePlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.type.Sign;
-import org.bukkit.block.data.type.Snow;
-import org.bukkit.block.data.type.Stairs;
-import org.bukkit.block.data.type.WallSign;
+import org.bukkit.block.data.type.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Vehicle;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
+import org.bukkit.util.VoxelShape;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 public class CollisionUtils {
     public static boolean accurateGround(Player player) {
-        final double[] OFFSETS_X = { 0, 0.300, -0.300 };
-        final double[] OFFSETS_Z = { 0, 0.300, -0.300 };
+        final double[] OFFSETS_X = {0, 0.300, -0.300};
+        final double[] OFFSETS_Z = {0, 0.300, -0.300};
+        final double OFFSET_Y = -0.009800000190734863;
 
         Location playerLocation = player.getLocation().clone();
         Vector velocity = player.getVelocity().clone();
         playerLocation.add(velocity);
+        BoundingBox playerBoundingBox = player.getBoundingBox().shift(0, -0.09800000190734863f,0);
+        boolean onBoat = isPlayerOnTopOfBoat(player);
+        boolean inBoat = player.isInsideVehicle();
+
         for (double xOffset : OFFSETS_X) {
-            for (double zOffset : OFFSETS_Z) { // 0.09800000190734863f
-                Location checkLocation = playerLocation.clone().add(xOffset, -0.009800000190734863f, zOffset); //
+            for (double zOffset : OFFSETS_Z) {
+                Location checkLocation = playerLocation.clone().add(xOffset, OFFSET_Y, zOffset);
                 Block blockBelow = checkLocation.getBlock();
-                //player.sendMessage(Component.text("shitty: solid:" + blockBelow.getType().isSolid() + " bbox: " + blockHasWeirdBoundingBox(blockBelow) + " boat: " + isPlayerOnTopOfBoat(player)));
-                if ((blockBelow.getType().isSolid() || blockHasWeirdBoundingBox(blockBelow) || isPlayerOnTopOfBoat(player)) && !blockIsNotGroundBlackListed(blockBelow)) {
-                    int ver = Via.getAPI().getPlayerVersion(player);
-                    if(blockBelow.getBlockData() instanceof Snow){
+                BoundingBox blockBoundingBox = blockBelow.getBoundingBox();
+                boolean overlapping = playerBoundingBox.overlaps(blockBoundingBox);
+                // 0.09800000190734863f
+                if (onBoat && !inBoat) {
+                    return true;
+                }
+                //player.sendMessage("ground: " + (overlapping && !blockBelow.isPassable()) + " ov: " + overlapping + " !p: " + !blockBelow.isPassable());
+                if (overlapping && !blockBelow.isPassable()) {
+                    if (blockBelow.getBlockData() instanceof Snow) {
                         // check for 1.17+
-                        if(ver >= VersionUtil.versionMapping().get("1.17")){
-                            player.sendMessage(Component.text("1.17+ : ver: " + ver + "solid:" + blockBelow.getType().isSolid() + " bbox: " + blockHasWeirdBoundingBox(blockBelow) + " boat: " + isPlayerOnTopOfBoat(player)));
+                        int snowLayers = ((Snow)blockBelow).getLayers();
+                        if (VersionUtil.playerAboveVersion("1.17",player) && snowLayers <= 1) {
                             return false;
                         }
                     }
-                    player.sendMessage(Component.text("ver: " + ver + "solid:" + blockBelow.getType().isSolid() + " bbox: " + blockHasWeirdBoundingBox(blockBelow) + " boat: " + isPlayerOnTopOfBoat(player)));
                     return true;
                 }
             }
@@ -51,7 +60,18 @@ public class CollisionUtils {
 
     private static boolean blockIsNotGroundBlackListed(Block blockBelow) {
         return blockBelow.getBlockData() instanceof WallSign
-                || blockBelow.getBlockData() instanceof Sign;
+                || blockBelow.getBlockData() instanceof Sign
+                || !isCube(blockBelow) ;
+    }
+
+    public static boolean isCube(Block block) {
+        VoxelShape voxelShape = block.getCollisionShape();
+        BoundingBox boundingBox = block.getBoundingBox();
+        return (voxelShape.getBoundingBoxes().size() == 1
+                && boundingBox.getWidthX() == 1.0
+                && boundingBox.getHeight() == 1.0
+                && boundingBox.getWidthZ() == 1.0
+        );
     }
 
     public static boolean isSolidBlockAbovePlayer(Player player, double offsetY, boolean fromHead) {
@@ -112,6 +132,22 @@ public class CollisionUtils {
             }
         }
         return Material.AIR;
+    }
+
+    public static Block groundBlock(Player player) {
+        final double[] OFFSETS_X = { 0, 0.300, -0.300 };
+        final double[] OFFSETS_Z = { 0, 0.300, -0.300 };
+
+        Location playerLocation = player.getLocation().clone();
+        Vector velocity = player.getVelocity().clone();
+        playerLocation.add(velocity);
+        for (double xOffset : OFFSETS_X) {
+            for (double zOffset : OFFSETS_Z) {
+                Location checkLocation = playerLocation.clone().add(xOffset, player.getVelocity().getY() > 0 ? -0.09800000190734863f : player.getVelocity().getY(), zOffset); //
+                return checkLocation.getBlock();
+            }
+        }
+        return null;
     }
 
     public static Material[] fences = {
@@ -354,24 +390,36 @@ public class CollisionUtils {
         }
     }
     public static boolean isPlayerOnTopOfBoat(Player player) {
-        Location playerLocation = player.getLocation();
-        double playerY = playerLocation.getY();
-        AtomicBoolean d = new AtomicBoolean(false);
+        Future<Boolean> future = Bukkit.getScheduler().callSyncMethod(CookieAC.getInstance(), new Callable<Boolean>() {
+            @Override
+            public Boolean call() {
+                Location playerLocation = player.getLocation();
+                double playerY = playerLocation.getY();
+                double xOffset = 0.35;
+                double yOffset = 1.0;
+                double zOffset = 0.35;
+                double yMargin = 0.0625;
 
-        Bukkit.getScheduler().runTask(CookieAC.getInstance(),r -> {
-            for (Entity entity : player.getNearbyEntities(0.3, 1, 0.3)) {
-                if (entity instanceof Vehicle && entity.getType().name().contains("BOAT")) {
-                    Location boatLocation = entity.getLocation();
-                    double boatY = boatLocation.getY();
-                    double boatMaxY = boatY + entity.getHeight();
-                    if (playerY >= boatMaxY - 0.0625 && playerY <= boatMaxY + 0.0625) {
-                        d.set(true);
+                for (Entity entity : player.getNearbyEntities(xOffset, yOffset, zOffset)) {
+                    if (entity instanceof Vehicle && entity.getType().name().contains("BOAT")) {
+                        Location boatLocation = entity.getLocation();
+                        double boatY = boatLocation.getY();
+                        double boatMaxY = boatY + entity.getHeight();
+                        if (playerY >= boatMaxY - yMargin && playerY <= boatMaxY + yMargin) {
+                            return true;
+                        }
                     }
                 }
+                return false;
             }
         });
 
-        return d.get();
+        try {
+            return future.get();
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     public static boolean nearGround(Player player) {
@@ -460,8 +508,8 @@ public class CollisionUtils {
         final double[] OFFSETS_Z = {0, 0.3, -0.3};
         Location playerLocation = player.getLocation().clone();
         double startY = playerLocation.getY();
-        double currentY = startY - 0.125; // Increased step size
-        double maxCheckDistance = 3 * 1.0; // Maximum distance to check (5 blocks)
+        double currentY = startY - 0.125;
+        double maxCheckDistance = 2 * 1.0;
 
         while (currentY > -255 && (startY - currentY) <= maxCheckDistance) {
             boolean groundFound = false;
@@ -477,19 +525,87 @@ public class CollisionUtils {
                         break;
                     }
                 }
-                if (groundFound) break; // Exit inner loop once ground is found
+                if (groundFound) break;
             }
             if (groundFound) {
-                // Calculate the distance from the player's starting Y position to the ground
-                double distance = startY - currentY - 0.125; // Adjusted for larger step size
+                double distance = startY - currentY - 0.125;
                 return distance;
             }
-
-            // Move down another layer
-            currentY -= 0.125; // Increased step size
+            currentY -= 0.125;
         }
-
-        // If no ground was found within 5 blocks, return a special value or handle accordingly
         return Double.MAX_VALUE;
+    }
+    public static double calculateDistanceToBlock(Player player, Material block) {
+        final double[] OFFSETS_X = {0, 0.3, -0.3};
+        final double[] OFFSETS_Z = {0, 0.3, -0.3};
+        Location playerLocation = player.getLocation().clone();
+        double startY = playerLocation.getY();
+        double currentY = startY - 0.125;
+        double maxCheckDistance = 3 * 1.0;
+
+        while (currentY > -255 && (startY - currentY) <= maxCheckDistance) {
+            boolean groundFound = false;
+            for (double xOffset : OFFSETS_X) {
+                for (double zOffset : OFFSETS_Z) {
+                    Location checkLocation = playerLocation.clone();
+                    checkLocation.add(xOffset, 0, zOffset);
+                    checkLocation.setY(currentY);
+                    Block blockBelow = checkLocation.getBlock();
+                    Material blockMaterial = blockBelow.getType();
+                    if (blockMaterial == block) {
+                        groundFound = true;
+                        break;
+                    }
+                }
+                if (groundFound) break;
+            }
+            if (groundFound) {
+                double distance = startY - currentY - 0.125;
+                return distance;
+            }
+            currentY -= 0.125;
+        }
+        return Double.MAX_VALUE;
+    }
+    public static double calculateDistanceToBed(Player player) {
+        final double[] OFFSETS_X = {0, 0.3, -0.3};
+        final double[] OFFSETS_Z = {0, 0.3, -0.3};
+        Location playerLocation = player.getLocation().clone();
+        double startY = playerLocation.getY();
+        double currentY = startY - 0.25;
+        double maxCheckDistance = 2 * 1.0;
+
+        while (currentY > -255 && (startY - currentY) <= maxCheckDistance) {
+            boolean groundFound = false;
+            for (double xOffset : OFFSETS_X) {
+                for (double zOffset : OFFSETS_Z) {
+                    Location checkLocation = playerLocation.clone();
+                    checkLocation.add(xOffset, 0, zOffset);
+                    checkLocation.setY(currentY);
+                    Block blockBelow = checkLocation.getBlock();
+                    if (blockBelow.getBlockData() instanceof Bed) {
+                        groundFound = true;
+                        break;
+                    }
+                }
+                if (groundFound) break;
+            }
+            if (groundFound) {
+                double distance = startY - currentY - 0.25;
+                return distance;
+            }
+            currentY -= 0.25;
+        }
+        return Double.MAX_VALUE;
+    }
+
+    public static boolean onLadder(CookiePlayer user) {
+        Block feetBlock = user.toBukkit().getWorld().getBlockAt(user.toBukkit().getLocation());
+        return feetBlock.getBlockData() instanceof Ladder
+                || feetBlock.getBlockData() instanceof CaveVines
+                || feetBlock.getBlockData() instanceof CaveVinesPlant
+                || feetBlock.getType().equals(Material.VINE)
+                || feetBlock.getType().equals(Material.TWISTING_VINES)
+                || feetBlock.getType().equals(Material.TWISTING_VINES_PLANT);
     }
 }

@@ -29,7 +29,7 @@ public class GroundA extends Check {
                 //getUser().toBukkit().sendMessage(Component.text("Server ground : " + serverGround));
                 // just checking if plugin is built correctly lol
                 if(claimOnGroundTick > 2 && !serverGround && !nearGround && offGroundTick > 5){
-                    fail("s:" + serverGround + " c: " + claimGround + " t: " + offGroundTick);
+                    fail(event,"s:" + serverGround + " c: " + claimGround + " t: " + offGroundTick);
                 }else{
                     violations = Math.max(0, violations - 0.0025f);
                 }

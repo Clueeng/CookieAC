@@ -26,11 +26,18 @@ public class GroundB extends Check {
                 boolean nearGround = CollisionUtils.nearGround(getUser().toBukkit());
                 // check if the player is not near the server ground (1 block maybe)
                 // We have to check if the player is off the ground for more than 1 tick to prevent some falses due to imperfect ground check
-                //getUser().toBukkit().sendMessage(Component.text("Server ground : " + serverGround));
-                // just checking if plugin is built correctly lol
+
+                // The player will be loading chunks and will be off ground client side but on ground server side, this will flag for ground B
+                // We need to take that into account
+                // We could also check for the motion Y value of the player when he is in the void of unloaded chunks
+                // this value being -0.09800000190734863f
+                exemptOnJoin();
+
+                // Ground B can false if the player is inside blocks, due to my very good ground method, we need to exempt that (free disabler)
+
 
                 if(claimOffGroundTick > 2 && serverGround && nearGround && onGroundTick > 5){
-                    fail("s:" + serverGround + " c: " + claimGround + " t: " + offGroundTick);
+                    fail(event,"s:" + serverGround + " c: " + claimGround + " t: " + offGroundTick);
                 }else{
                     violations = Math.max(0, violations - 0.0025f);
                 }

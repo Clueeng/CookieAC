@@ -5,7 +5,9 @@ import fr.clue.cookieac.check.Check;
 import fr.clue.cookieac.check.CheckData;
 import fr.clue.cookieac.utils.CollisionUtils;
 import fr.clue.cookieac.utils.PacketUtil;
+import fr.clue.cookieac.utils.VersionUtil;
 import org.bukkit.Material;
+import org.bukkit.block.data.type.Bed;
 
 @CheckData(name = "Gravity", type = "B", description = "Too high/low motion", experimental = true, punishmentVL = 10)
 public class GravityB extends Check {
@@ -25,7 +27,7 @@ public class GravityB extends Check {
                 if(!onGround && wasOnGround){
                     // just jumped, motiony should be 0.42 logically
                     if(deltaY > maxY()){
-                        fail("dY: " + deltaY + " mY: " + maxY() + " (jumped from the ground too high)");
+                        fail(event, + deltaY + " mY: " + maxY() + " (jumped from the ground too high)");
                     }
                 }
             }
@@ -37,6 +39,12 @@ public class GravityB extends Check {
         boolean onStairs = CollisionUtils.onStairs(getUser().toBukkit());
         boolean wasOnSlime = getUser().getProcessorManager().getMovementProcessor().getLastTouchedMaterial().equals(Material.SLIME_BLOCK);
         double d = 0.42d;
+        if(getUser().getProcessorManager().getMovementProcessor().getLastTouchedBlock() != null){
+            boolean wasOnBed = getUser().getProcessorManager().getMovementProcessor().getLastTouchedBlock().getBlockData() instanceof Bed;
+            if((wasOnBed && VersionUtil.playerAboveVersion("1.12", getUser().toBukkit()))){
+                d = 10;
+            }
+        }
         if(wasOnSlime){
             d = 10;
         }

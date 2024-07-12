@@ -3,10 +3,13 @@ package fr.clue.cookieac.check.impl.gravity;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import fr.clue.cookieac.check.Check;
 import fr.clue.cookieac.check.CheckData;
+import fr.clue.cookieac.process.impl.MovementProcessor;
 import fr.clue.cookieac.utils.CollisionUtils;
 import fr.clue.cookieac.utils.PacketUtil;
+import fr.clue.cookieac.utils.VersionUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
+import org.bukkit.block.data.type.Bed;
 
 import java.nio.file.WatchService;
 
@@ -35,19 +38,21 @@ public class GravityA extends Check {
                 double groundDist = CollisionUtils.calculateDistanceToGround(getUser().toBukkit());
                 double ceilingDist = CollisionUtils.calculateDistanceToCeiling(getUser().toBukkit());
                 boolean nearSlime = CollisionUtils.calculateDistanceToSlimeBlock(getUser().toBukkit()) < 0.25 + Math.max(0, deltaY);
+                boolean nearBed = CollisionUtils.calculateDistanceToBed(getUser().toBukkit()) < 0.25 + Math.max(0, deltaY);
                 boolean offGround = offGroundTick > 3;
                 //getUser().toBukkit().sendMessage("Lol is that updating " + getUser().toBukkit().getTicksLived() + "ground state: " + !offGround + " off ground for : " + offGroundTick);
                 if((offGround && groundDist < 0.5 || (offGroundTick < 10 && groundDist < 0.9 && offGroundTick > 5)) && deltaY < 0.01){
                     exemptionTicks = 2;
                     return;
                 }
+                if(CollisionUtils.onLadder(getUser())) exemptionTicks = 1;
                 //getUser().toBukkit().sendMessage("ceil : " + ceilingDist);
                 if(deltaY > 0.41 && deltaY < 0.42 && predictedDeltaY() > -0.304 && predictedDeltaY() < -0.305 && offGroundTick > 9 && offGroundTick < 12 && groundDist > 0.9 && groundDist < 1.6
                         || ceilingDist <= 0.5){
                     exemptionTicks = 2;
                     return;
                 }
-                if(nearSlime){
+                if(nearSlime || (nearBed && VersionUtil.playerAboveVersion("1.12", getUser().toBukkit()))){
                     exemptionTicks = 1;
                     return;
                 }
@@ -57,7 +62,7 @@ public class GravityA extends Check {
                 );
 
                 if(difference > 0.003 && offGround && (deltaY < -0.2 || groundDist > 0.5)){
-                    fail(String.valueOf("dY: " + deltaY + " pD: " + predictedDeltaY() + " dif: " + difference + " og: " + offGroundTick + " gd: " + groundDist));
+                    fail(event, String.valueOf("dY: " + deltaY + " pD: " + predictedDeltaY() + " dif: " + difference + " og: " + offGroundTick + " gd: " + groundDist));
                 }else{
                     violations = Math.max(0, violations - 0.0025f);
                 }
@@ -67,13 +72,14 @@ public class GravityA extends Check {
     }
 
     public double predictedDeltaY(){
-        double lastDeltaY = getUser().getProcessorManager().getMovementProcessor().getLastDeltaY();
+        MovementProcessor move = getUser().getProcessorManager().getMovementProcessor();
+        double lastDeltaY = move.getLastDeltaY();
         double gravity = 0.9800000190734863d;
         double fall = 0.08d;
         double pred = (lastDeltaY - fall) * gravity;
-        if(getUser().getProcessorManager().getMovementProcessor().getDeltaY() > 0.0 &&
-                !getUser().getProcessorManager().getMovementProcessor().getFrom().isOnGround() &&
-                getUser().getProcessorManager().getMovementProcessor().isAccurateGround())
+        if(move.getDeltaY() > 0.0 &&
+                !move.getFrom().isOnGround() &&
+                move.isAccurateGround())
             pred = 0.42f + (getUser().getPotionData().getJumpAmplifier(getUser().toBukkit()));
         return pred;
     }

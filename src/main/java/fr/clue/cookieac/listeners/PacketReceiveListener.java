@@ -51,9 +51,12 @@ public class PacketReceiveListener extends PacketListenerAbstract {
                 check.exemptionTicks = 5; // 5 cuz client accepted
             });
         }
-        user.getChecks().forEach(check -> {
-           check.onPacket(event);
-        });
+        // not sure of that but should fix
+        if(Math.abs(user.getTimeJoin() - System.currentTimeMillis()) >= 50){
+            user.getChecks().forEach(check -> {
+                check.onPacket(event);
+            });
+        }
         // run client processors
         user.getProcessorManager().getProcessors().forEach(processor -> processor.onPacket(event));
     }

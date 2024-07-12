@@ -4,6 +4,7 @@ import com.github.retrooper.packetevents.PacketEvents;
 import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import fr.clue.cookieac.check.Check;
 import fr.clue.cookieac.check.CheckManager;
+import fr.clue.cookieac.command.EnableAlerts;
 import fr.clue.cookieac.event.packet.BukkitListener;
 import fr.clue.cookieac.listeners.PacketReceiveListener;
 import fr.clue.cookieac.listeners.TickListener;
@@ -51,6 +52,8 @@ public final class CookieAC extends JavaPlugin {
         checkManager = new CheckManager();
         getLogger().info("Loading checks");
         checkManager.loadChecks();
+        this.getCommand("alerts").setExecutor(new EnableAlerts());
+        this.getCommand("alerts").setTabCompleter(new EnableAlerts());
 
     }
 

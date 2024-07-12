@@ -12,6 +12,7 @@ import fr.clue.cookieac.utils.location.FlyingLocation;
 import lombok.Getter;
 import lombok.Setter;
 import org.bukkit.Material;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
 @Getter
@@ -24,6 +25,7 @@ public class MovementProcessor extends Processor {
     private FlyingLocation fromFrom = new FlyingLocation();
     private FlyingLocation lastGroundPosition = new FlyingLocation();
     private Material lastTouchedMaterial = Material.DIRT;
+    private Block lastTouchedBlock = null;
 
     private double deltaX, deltaY, deltaZ, deltaXAbs, deltaZAbs, deltaYAbs, lastDeltaX, lastDeltaY, lastDeltaZ,
             lastDeltaXZ, lastDeltaYaw, lastDeltaPitch, lastDeltaYawAbs, lastDeltaPitchAbs,
@@ -54,7 +56,6 @@ public class MovementProcessor extends Processor {
                 float yaw = flyingPacket.getLocation().getYaw();
 
                 boolean ground = flyingPacket.isOnGround();
-                boolean mathGround = CollisionUtils.hasNoSolidBlocksAroundPlayer((Player) event.getPlayer()) && this.getTo().getPosY() % (1 / 64.0d) == 0;
                 this.wasAccurateGround = this.accurateGround;
                 this.accurateGround = CollisionUtils.accurateGround((Player) event.getPlayer()) ||
                         CollisionUtils.isStandingOnLilypad((Player) event.getPlayer())
@@ -63,6 +64,12 @@ public class MovementProcessor extends Processor {
                 if(CollisionUtils.groundMaterial((Player) event.getPlayer()).isSolid()){
                     lastTouchedMaterial = CollisionUtils.groundMaterial((Player) event.getPlayer());
                     landedFromSlime = false;
+                    lastTouchedBlock = CollisionUtils.groundBlock((Player) event.getPlayer()).getType().equals(Material.AIR)
+                            ? (lastTouchedBlock == null
+                            ? CollisionUtils.groundBlock((Player) event.getPlayer())
+                            : lastTouchedBlock)
+                            : CollisionUtils.groundBlock((Player) event.getPlayer());
+                    //((Player) event.getPlayer()).sendMessage("last touched block : " + lastTouchedBlock.getType());
                 }else{
                     if(this.accurateGround){
                         landedFromSlime = true;
